@@ -1,4 +1,5 @@
-
+# Question from the Professional Assembly Book. 
+# x86 Assembly AT&T syntax
 .section .data
 output:
       .asciz "The value is: %d\n"
