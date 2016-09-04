@@ -6,23 +6,24 @@
 #include<stack>
 #include<stdlib.h>
 
-#define K_DIGIT       3      //integer
-#define K_CHAR        4      //character
-#define K_STRING      5      //string
-#define K_TYPE        6      //type
-#define K_KEYWORDS    7      //keywords
-#define K_OPERATOR    8      //operator
-#define K_IDENTIFIER  9      //identifier
-#define K_BRACKET     10     //brackets
+#define CONST_DIGIT       3      //integer
+#define CONST_CHAR        4      //character
+#define CONST_OPERATOR    8      //operator
+#define CONST_IDENTIFIER  9      //identifier
+#define CONST_BRACKET     10     //brackets
+#define CONST_STRING      5      //string
+#define CONST_TYPE        6      //type
+#define CONST_KEYWORDS    7      //keywords
+
 
 using namespace std;
 
 
-typedef struct IDwords
+typedef struct WordID_pair
 {
 	int       id;     //identifier
 	string    word;   //word
-}IDwords;
+}WordID_pair;
 
 typedef struct Variable
 {
@@ -33,8 +34,8 @@ typedef struct Variable
 //target
 typedef struct Target
 {
-	string    dst;    //destination
-	string    dsc;    //source
+	string    dest;    //destination
+	string    dsrc;    //source
 	string    mark;   //token
 	string    step;   //jump position
 	string    dsf;    //results
@@ -58,21 +59,20 @@ string  asmfile(string source)
 		cout<<"File Name Cannot be Empty!"<<endl;
 		exit(-1);
 	}
-	string temp="";
+	string tempStr="";
 	int i,j;
 	j = source.size();
     for(i = j-1;i>=0;i--)
 	{
-//		if(source[i] == '\\' || source[i]== '/')
-//			break;
+
 		if(source[i] == '.')
 		{
 			j = i;
 			break;
 		}
 	}
-	temp = source.substr(0,j) + ".asm";
-	return temp;
+	tempStr = source.substr(0,j) + ".asm";
+	return tempStr;
 }
 
 //precedence of operators
@@ -92,13 +92,13 @@ int level(string s)
 
 
 //save to target code
-void add_target_code(string dsf,string op,string dst,string dsc,string mark,string step)
+void add_target_code(string dsf,string op,string dest,string dsrc,string mark,string step)
 {
 	Target  tmp;
 	tmp.dsf = dsf;
 	tmp.op = op;
-	tmp.dst = dst;
-	tmp.dsc = dsc;
+	tmp.dest = dest;
+	tmp.dsrc = dsrc;
 	tmp.mark = mark;
 	tmp.step = step;
 	target_code.push_back(tmp);
@@ -147,7 +147,7 @@ int word_token(string s)
 	if(s[0]=='\'')
 	{
 		if(s[size-1] == '\'')
-			return K_CHAR;
+			return CONST_CHAR;
 		else
 		{
 			cout<<"Wrong string of tokens： "<<s<<endl;
@@ -158,7 +158,7 @@ int word_token(string s)
 	else if(s[0]=='\"')
 	{
 		if(s[size-1]=='\"')
-			return K_STRING;
+			return CONST_STRING;
 		else
 		{
             cout<<"Wrong string of tokens："<<s<<endl;
@@ -176,7 +176,7 @@ int word_token(string s)
 				exit(-1);
 			}
 		}
-		return K_DIGIT;
+		return CONST_DIGIT;
 	}
 	else
 	{
@@ -190,27 +190,27 @@ int word_token(string s)
 		}
 		//data type
 		if(s=="int" || s=="char")
-			return K_TYPE;
+			return CONST_TYPE;
 		//keyword
 		else if(s=="if" || s=="else" || s=="printf" || s=="main")
-			return K_KEYWORDS;
+			return CONST_KEYWORDS;
 		//user-defined identifier
 		else
-			return K_IDENTIFIER;
+			return CONST_IDENTIFIER;
 	}
 }
 
 //add keywords
-void add_keywords(vector<IDwords> &v,int id,string word)
+void keywords_addition(vector<WordID_pair> &v,int id,string word)
 {
-	IDwords    temp;
+	WordID_pair    temp;
 	temp.id = id;
 	temp.word = word;
 	v.push_back(temp);
 }
 
 //Lexical analysis
-void lexicalAnalysis(string source,vector<IDwords> &AnalyzedData)
+void lexicalAnalysis(string source,vector<WordID_pair> &AnalyzedData)
 {
 	char       ch;
 	ifstream   rfile(source.c_str());
@@ -257,20 +257,20 @@ void lexicalAnalysis(string source,vector<IDwords> &AnalyzedData)
 				}
 				else
 				{
-					add_keywords(AnalyzedData,K_OPERATOR,char_to_str(ch));
+					keywords_addition(AnalyzedData,CONST_OPERATOR,char_to_str(ch));
 					ch = try_ch;  //State 1
 				}
 			}
 		case 1:
 		    if(is_operator(ch)) //Determine operator
 			{
-				add_keywords(AnalyzedData,K_OPERATOR,char_to_str(ch));
+				keywords_addition(AnalyzedData,CONST_OPERATOR,char_to_str(ch));
 				break;
 			}
 		case 2:
 		    if(is_bracket(ch)) 
 			{
-				add_keywords(AnalyzedData,K_BRACKET,char_to_str(ch));
+				keywords_addition(AnalyzedData,CONST_BRACKET,char_to_str(ch));
 				break;
 			}
 		case 3:
@@ -297,7 +297,7 @@ void lexicalAnalysis(string source,vector<IDwords> &AnalyzedData)
 					temp = temp + char_to_str(try_ch);
 					if(ch == '\"')
 					{
-						add_keywords(AnalyzedData,word_token(temp),temp);
+						keywords_addition(AnalyzedData,word_token(temp),temp);
 						break;
 					}
 					else
@@ -310,7 +310,7 @@ void lexicalAnalysis(string source,vector<IDwords> &AnalyzedData)
 				{
 					if(ch != '\'' && ch != '\"')
 					{
-						add_keywords(AnalyzedData,word_token(temp),temp);
+						keywords_addition(AnalyzedData,word_token(temp),temp);
 						break;
 					}
 					else
@@ -320,8 +320,8 @@ void lexicalAnalysis(string source,vector<IDwords> &AnalyzedData)
 				{
 					if(ch !='\'' && ch != '\"' )
 					{
-						add_keywords(AnalyzedData,word_token(temp),temp);
-					    add_keywords(AnalyzedData,K_OPERATOR,char_to_str(try_ch));
+						keywords_addition(AnalyzedData,word_token(temp),temp);
+					    keywords_addition(AnalyzedData,CONST_OPERATOR,char_to_str(try_ch));
 						break;
 					}
 					else
@@ -329,8 +329,8 @@ void lexicalAnalysis(string source,vector<IDwords> &AnalyzedData)
 				}
 				else if(is_bracket(try_ch))
 				{
-					add_keywords(AnalyzedData,word_token(temp),temp);
-					add_keywords(AnalyzedData,K_BRACKET,char_to_str(try_ch));
+					keywords_addition(AnalyzedData,word_token(temp),temp);
+					keywords_addition(AnalyzedData,CONST_BRACKET,char_to_str(try_ch));
 					break;
 				}
 				else
@@ -342,23 +342,23 @@ void lexicalAnalysis(string source,vector<IDwords> &AnalyzedData)
 }
 
 //print lexical analysis results
-void print_lexical(vector<IDwords> &v)
+void lex_print(vector<WordID_pair> &v)
 {
-	vector<IDwords>::iterator  it;
+	vector<WordID_pair>::iterator  it;
 	for(it = v.begin();it != v.end();it++)
 		cout<<it->id<<" "<<it->word<<endl;
 }
 
 //obtain var declarations
-void add_var_table(vector<IDwords>::iterator &it)
+void varTable_addition(vector<WordID_pair>::iterator &it)
 {
-	while(it->id == K_TYPE)
+	while(it->id == CONST_TYPE)
 	{
 		it++;
 		while(it->word != ";")
 		{
 	
-			if(it->id == K_IDENTIFIER)
+			if(it->id == CONST_IDENTIFIER)
 			{
 				Variable     tmp;
 				tmp.var = it->word;
@@ -378,9 +378,9 @@ void add_var_table(vector<IDwords>::iterator &it)
 }
 
 //expression analysis
-void expression(vector<IDwords>::iterator &it)
+void expression(vector<WordID_pair>::iterator &it)
 {
-	string dsf,op,dst,dsc;         
+	string dsf,op,dest,dsrc;         
 	
     stack<string>         word_stack;
     
@@ -399,10 +399,10 @@ void expression(vector<IDwords>::iterator &it)
 				op = oper_stack.top();
 			
 			    oper_stack.pop();
-		//	    oper_stack.push(it->word);
-			    dsc = word_stack.top();
+		
+			    dsrc = word_stack.top();
                 word_stack.pop();
-			    dst = word_stack.top();
+			    dest = word_stack.top();
 			    word_stack.pop();
 			    vab = vab+1;
 				if(vab == 91)
@@ -414,12 +414,12 @@ void expression(vector<IDwords>::iterator &it)
 				var_table.push_back(tmp);
 
 			    word_stack.push(dsf);
-                add_target_code(dsf,op,dst,dsc," "," ");
+                add_target_code(dsf,op,dest,dsrc," "," ");
 			}
 			oper_stack.pop();
 	
 		}
-		else if(it->id != K_OPERATOR)
+		else if(it->id != CONST_OPERATOR)
 			word_stack.push(it->word);
 		else if(oper_stack.top() == "(")
 		{
@@ -430,9 +430,9 @@ void expression(vector<IDwords>::iterator &it)
 			op = oper_stack.top();
 			oper_stack.pop();
 			oper_stack.push(it->word);
-			dsc = word_stack.top();
+			dsrc = word_stack.top();
             word_stack.pop();
-			dst = word_stack.top();
+			dest = word_stack.top();
 			word_stack.pop();
 			vab = vab+1;
 			if(vab == 91)
@@ -444,7 +444,7 @@ void expression(vector<IDwords>::iterator &it)
 			var_table.push_back(tmp);
 
 			word_stack.push(dsf);
-            add_target_code(dsf,op,dst,dsc," "," ");
+            add_target_code(dsf,op,dest,dsrc," "," ");
 		}
 		else   
 			oper_stack.push(it->word);
@@ -455,14 +455,14 @@ void expression(vector<IDwords>::iterator &it)
 	{
 		op = oper_stack.top();
         oper_stack.pop();
-		dsc = word_stack.top();
+		dsrc = word_stack.top();
         word_stack.pop();
-		dst = word_stack.top();
+		dest = word_stack.top();
 		word_stack.pop();
 	
 		if(op=="=")//Assignment
 		{
-			add_target_code(dst,op,dsc," "," "," ");
+			add_target_code(dest,op,dsrc," "," "," ");
 		}
 		else
 		{
@@ -476,13 +476,13 @@ void expression(vector<IDwords>::iterator &it)
 			var_table.push_back(tmp);
 
 			word_stack.push(dsf);
-            add_target_code(dsf,op,dst,dsc," "," ");
+            add_target_code(dsf,op,dest,dsrc," "," ");
 		}
 	}
 }
 
 //analyzing print
-void printf_analysis(vector<IDwords>::iterator &it)
+void analysis_print(vector<WordID_pair>::iterator &it)
 {
 	int j,i=1;
 	it = it+2;
@@ -529,9 +529,9 @@ void printf_analysis(vector<IDwords>::iterator &it)
 }
 
 //if analysis
-void if_analysis(vector<IDwords>::iterator &it)
+void if_analysis(vector<WordID_pair>::iterator &it)
 {
-	string  op,mark,dst,dsc;
+	string  op,mark,dest,dsrc;
 	it++;
 	if(it->word != "(")
 	{
@@ -539,14 +539,14 @@ void if_analysis(vector<IDwords>::iterator &it)
 		exit(-1);
 	}
 	it++;
-	dst = it->word;
+	dest = it->word;
 	it++;
 	mark = it->word;
 	it++;
-	dsc = it->word;
+	dsrc = it->word;
 	op = "if";
 
-	add_target_code(" ",op,dst,dsc,mark,"step"+char_to_str(lab+1));
+	add_target_code(" ",op,dest,dsrc,mark,"step"+char_to_str(lab+1));
 	it++;
 	if(it->word != ")")
 	{
@@ -557,7 +557,7 @@ void if_analysis(vector<IDwords>::iterator &it)
 	it++;
     
 	//analyzing else
-	vector<IDwords>::iterator   it2 = it;
+	vector<WordID_pair>::iterator   it2 = it;
     while(it2->word != "}")
 	{
 		it2++;
@@ -592,9 +592,9 @@ void if_analysis(vector<IDwords>::iterator &it)
 }
 
 //syntax analysis
-void syntaxAnalysis(vector<IDwords> &AnalyzedData)
+void syntaxAnalysis(vector<WordID_pair> &AnalyzedData)
 {
-	vector<IDwords>::iterator  it=AnalyzedData.begin();
+	vector<WordID_pair>::iterator  it=AnalyzedData.begin();
     if(it->word != "main")
 	{
 		cout<<"lack of main"<<endl;
@@ -608,14 +608,14 @@ void syntaxAnalysis(vector<IDwords> &AnalyzedData)
 	}
 	it++;
 	
-    add_var_table(it);
+    varTable_addition(it);
     //operations on code segment
 	while(it != AnalyzedData.end())
 	{
 		//printf
 		if(it->word == "printf")
 		{
-			printf_analysis(it);
+			analysis_print(it);
 		}
 		// if 
 		else if(it->word == "if")
@@ -634,7 +634,7 @@ void syntaxAnalysis(vector<IDwords> &AnalyzedData)
 }
 
 //print syntactic analysis results
-void print_syntax()
+void syntax_print()
 {
 	vector<Variable>::iterator  it;
 	cout<<"Variable Declaration and Initialization"<<endl;
@@ -647,26 +647,26 @@ void print_syntax()
 	cout<<"Intermediate Code"<<endl;
 	for(it2 = target_code.begin();it2 != target_code.end();it2++)
 	{
-		cout<<it2->dsf<<"  "<<it2->op<<"  "<<it2->dst<<"  "<<it2->dsc<<"  "<<it2->mark<<"  "<<it2->step<<endl;
+		cout<<it2->dsf<<"  "<<it2->op<<"  "<<it2->dest<<"  "<<it2->dsrc<<"  "<<it2->mark<<"  "<<it2->step<<endl;
 	}
 }
 
 //Addition and Subtraction
-void addsub_asm(ofstream &out,string dsf,string op,string dst,string dsc)
+void asm_add_sub(ofstream &out,string dsf,string op,string dest,string dsrc)
 {
-	out<<"    mov BL,"<<dst<<endl;
+	out<<"    mov BL,"<<dest<<endl;
 	if(op == "+")
-		out<<"    add BL,"<<dsc<<endl;
+		out<<"    add BL,"<<dsrc<<endl;
 	else
-		out<<"    sub BL,"<<dsc<<endl;
+		out<<"    sub BL,"<<dsrc<<endl;
 	out<<"    mov "<<dsf<<",BL"<<endl;
 }
 
 //Multiplication
-void mul_asm(ofstream &out,string dsf,string dst,string dsc)
+void asm_mult(ofstream &out,string dsf,string dest,string dsrc)
 {
-	out<<"    mov AL,"<<dst<<endl;
-	out<<"    mov BH,"<<dsc<<endl;
+	out<<"    mov AL,"<<dest<<endl;
+	out<<"    mov BH,"<<dsrc<<endl;
 	out<<"    mul BH"<<endl;
 	out<<"    mov BL,1"<<endl;
 	out<<"    div BL"<<endl;
@@ -674,24 +674,24 @@ void mul_asm(ofstream &out,string dsf,string dst,string dsc)
 }
 
 //Division
-void div_asm(ofstream &out,string dsf,string dst,string dsc)
+void asm_division(ofstream &out,string dsf,string dest,string dsrc)
 {
-	out<<"    mov AL,"<<dst<<endl;
+	out<<"    mov AL,"<<dest<<endl;
 	out<<"    CBW"<<endl;
-	out<<"    mov BL,"<<dsc<<endl;
+	out<<"    mov BL,"<<dsrc<<endl;
 	out<<"    div BL"<<endl;
 	out<<"    mov "<<dsf<<",AL"<<endl;
 }
 
 //Assignment
-void sign_asm(ofstream &out,string dsf,string dst)
+void asm_assignment(ofstream &out,string dsf,string dest)
 {
-	out<<"    mov BL,"<<dst<<endl;
+	out<<"    mov BL,"<<dest<<endl;
 	out<<"    mov "<<dsf<<",BL"<<endl;
 }
 
 //Printing
-void print_asm(ofstream &out,string dsf,string mark)
+void asm_print(ofstream &out,string dsf,string mark)
 {
 	//In terms of character
 	if(mark=="%c")
@@ -737,10 +737,10 @@ void print_asm(ofstream &out,string dsf,string mark)
 }
 
 //if statement
-void if_asm(ofstream &out,string dst,string dsc,string mark,string step)
+void asm_if(ofstream &out,string dest,string dsrc,string mark,string step)
 {
-	out<<"    mov AL,"<<dst<<endl;
-	out<<"    CMP AL,"<<dsc<<endl;
+	out<<"    mov AL,"<<dest<<endl;
+	out<<"    CMP AL,"<<dsrc<<endl;
 	if(mark == ">")
 		out<<"    JG "<<step<<endl;
 	else if(mark == "<")
@@ -754,7 +754,7 @@ void if_asm(ofstream &out,string dst,string dsc,string mark,string step)
 
 
 //Generating asm file
-void create_asm(string file)
+void asm_create(string file)
 {
 	//Var declaration
 	ofstream   wfile(file.c_str());
@@ -787,23 +787,23 @@ void create_asm(string file)
 	{
 		//summation and subtraction
 		if(it->op == "+" || it->op=="-")
-			addsub_asm(wfile,it->dsf,it->op,it->dst,it->dsc);
+			asm_add_sub(wfile,it->dsf,it->op,it->dest,it->dsrc);
 		//multiplication
 		else if(it->op == "*")
-			mul_asm(wfile,it->dsf,it->dst,it->dsc);
+			asm_mult(wfile,it->dsf,it->dest,it->dsrc);
 		//division
 		else if(it->op == "/")
-			div_asm(wfile,it->dsf,it->dst,it->dsc);
+			asm_division(wfile,it->dsf,it->dest,it->dsrc);
 		//assignment
 		else if(it->op == "=")
-			sign_asm(wfile,it->dsf,it->dst);
+			asm_assignment(wfile,it->dsf,it->dest);
 		//printing
 		else if(it->op == "p")
-			print_asm(wfile,it->dsf,it->mark);
+			asm_print(wfile,it->dsf,it->mark);
 		//if predicate
 		else if(it->op == "if")
 		{
-			if_asm(wfile,it->dst,it->dsc,it->mark,it->step);
+			asm_if(wfile,it->dest,it->dsrc,it->mark,it->step);
 		}
 		else if(it->op == "else")
 		{
@@ -840,7 +840,7 @@ void create_asm(string file)
 
 int main(int argc,char* argv[])
 {
-	vector<IDwords>  AnalyzedData;
+	vector<WordID_pair>  AnalyzedData;
 
 	string source;
 
@@ -857,7 +857,7 @@ int main(int argc,char* argv[])
 		//Syntactic Analysis
 	    syntaxAnalysis(AnalyzedData);
 		//Generating asm
-	    create_asm(asmfile(source));
+	    asm_create(asmfile(source));
 		cout<<"\n Finished generating "<<endl;
 	}
 	else if(argc == 2)
@@ -868,7 +868,7 @@ int main(int argc,char* argv[])
 		
 	    syntaxAnalysis(AnalyzedData);
 		
-	    create_asm(asmfile(argv[1]));
+	    asm_create(asmfile(argv[1]));
 	}
 	else if(argc == 3)
 	{
@@ -877,7 +877,7 @@ int main(int argc,char* argv[])
 		//syntactic analysis
 	    syntaxAnalysis(AnalyzedData);
 		//creating asm
-	    create_asm(asmfile(argv[2]));
+	    asm_create(asmfile(argv[2]));
 	}
 	else
 	{
@@ -885,9 +885,9 @@ int main(int argc,char* argv[])
 	}
 
 	//print lex 
- //   print_lexical(AnalyzedData);
+ //   lex_print(AnalyzedData);
 	//print syntax
-//	print_syntax();
+//	syntax_print();
     /* cout<<"Would you like to see the generated codes? y/n"<<endl;
 	char response;
 	cin>>response;
